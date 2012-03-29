@@ -175,15 +175,6 @@ check_rule(Value, {in, Set}) when is_list(Set) ->
         false ->
             error
     end;
-check_rule(Value, {regexp, Regexp}) when is_binary(Value), is_binary(Regexp) ->
-    RegexpStr = binary_to_list(Regexp),
-    ValueStr = binary_to_list(Value),
-    case re:run(ValueStr, RegexpStr, []) of
-        {match, _} ->
-            ok;
-        nomatch ->
-            error
-    end;
 check_rule(Value, {'<', Max})  when is_number(Value), is_number(Max) ->
     case Value < Max of
         true ->
@@ -236,7 +227,7 @@ check_rule(Value, {size, Size}) when is_binary(Value), is_integer(Size) ->
 check_rule(Value, {func, {Module, Function}}) when is_atom(Module),
         is_atom(Function) ->
     Module:Function(Value);
-check_rule({func, Fun}, Value) when is_function(Fun, 1) ->
+check_rule(Value, {func, Fun}) when is_function(Fun, 1) ->
     Fun(Value);
 check_rule(_, _) ->
     error.
@@ -336,6 +327,10 @@ rule_max_size_test_() ->
 rule_size_test_() ->
     [?_assertEqual(ok, check_rule(<<"a">>, {size, 1})),
      ?_assertEqual(error, check_rule(<<"b">>, {size, 2}))].
+
+rule_func_test_() ->
+    [?_assertEqual(ok, check_rule(<<"a">>, {func, fun(Val) -> ok end})),
+     ?_assertEqual(error, check_rule(<<"b">>, {func, fun(Val) -> error end}))].
 
 check_test_() ->
     FloatMsg = <<"Must be a floating point number.">>,
