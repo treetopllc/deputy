@@ -56,7 +56,6 @@
 check_proplist(Values, Rules) ->
     Values0 = lists:keysort(1, Values),
     Rules0 = lists:keysort(1, Rules),
-    ?debugMsg("check_proplist/4"),
     case check_proplist(Values0, Rules0, [], []) of
         {Values1, []} ->
             {ok, Values1};
@@ -362,7 +361,6 @@ check_proplist_test_() ->
     {error, BadResults0} = check_proplist(BadValues, Rules),
     GoodResults1 = lists:keysort(1, GoodResults0),
     BadResults1 = lists:keysort(1, BadResults0),
-    ?debugMsg("testing"),
     [?_assertEqual(GoodResults, GoodResults1),
      ?_assertEqual(BadResults, BadResults1)].
 
