@@ -47,6 +47,18 @@
 %% simple api
 %% ----------------------------------------------------------------------------
 
+%% @doc Check a value against a set of rules. Errors are accumulated.
+%% Rules are iterated over in order.
+%% @end
+-spec check(term(), rules()) -> {ok, term()} | {error, list(binary())}.
+check(Value, Rules) ->
+    case check(Value, Rules, []) of
+        {Value0, []} ->
+            {ok, Value0};
+        {_, Errors} ->
+            {error, Errors}
+    end.
+
 %% @doc Check a property list against a set of rules for each property. Assumes
 %% there's a ruleset for every value in the proplist and that no extra
 %% values are present in the proplist.
@@ -63,17 +75,10 @@ check_proplist(Values, Rules) ->
             {error, Errors}
     end.
 
-%% @doc Check a value against a set of rules. Errors are accumulated.
-%% Rules are iterated over in order.
-%% @end
--spec check(term(), rules()) -> {ok, term()} | {error, list(binary())}.
-check(Value, Rules) ->
-    case check(Value, Rules, []) of
-        {Value0, []} ->
-            {ok, Value0};
-        {_, Errors} ->
-            {error, Errors}
-    end.
+
+%% ----------------------------------------------------------------------------
+%% advanced api
+%% ----------------------------------------------------------------------------
 
 %% @doc Try to convert a value to a desired type.
 -spec convert(binary(), convert()) -> convert_result() | error.
