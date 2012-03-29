@@ -113,7 +113,7 @@ convert(_, _) ->
 check(Value, [], []) ->
     {ok, Value};
 check(_, [], Errors) ->
-    {error, Errors};
+    {error, lists:reverse(Errors)};
 check(Value, [{Rule, Message} | Rules], Errors) ->
     case check_rule(Value, Rule) of
         ok ->
@@ -231,7 +231,6 @@ list_to_number(Str) ->
     end.
 
 
-
 %% ------------------------------------------------------------------
 %% unit tests
 %% ------------------------------------------------------------------
@@ -313,5 +312,16 @@ rule_max_size_test_() ->
 rule_size_test_() ->
     [?_assertEqual(ok, check_rule(<<"a">>, {size, 1})),
      ?_assertEqual(error, check_rule(<<"b">>, {size, 2}))].
+
+check_test_value_test_() ->
+    FloatMsg = <<"Must be a floating point number.">>,
+    LtMsg = <<"Must be less than 4.0">>,
+    InMsg = <<"Must be 2.0">>,
+    Rules = [{{convert, float}, FloatMsg},
+             {{'<', 4.0}, LtMsg},
+             {{in, [2.0]}, InMsg}],
+    [?_assertEqual({ok, 2.0}, check(<<"2.0">>, Rules)),
+     ?_assertEqual({error, [FloatMsg]}, check(<<"a">>, Rules)),
+     ?_assertEqual({error, [LtMsg, InMsg]}, check(<<"4.1">>, Rules))].
 
 -endif.

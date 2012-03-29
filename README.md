@@ -36,5 +36,4 @@ Proplist Rule Usage
 RuleSet = [{<<"name">> , [{{regexp, <<"[a-zA-Z0-9]+">>}, <<"Must contain only alphanumerical characters">>}]}],
 Attributes = [{<<"name">>, <<"##BatMan##">>}],
 {error, [{<<"name">>, [...]}]} = deputy:check(Attributes, RuleSet),
-
 ```
