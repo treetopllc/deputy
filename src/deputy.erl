@@ -20,10 +20,10 @@
 -module(deputy).
 
 %% simple api
--export([check/2]).
+-export([check_proplist/2, check/2]).
 
 %% advanced api which check/2 is built on.
--export([convert/2, check_rule/2, check/3]).
+-export([convert/2, check_rule/2, check/3, check_proplist/4]).
 
 %% types
 -type convert() :: boolean | integer | float | number.
@@ -47,24 +47,34 @@
 %% simple api
 %% ----------------------------------------------------------------------------
 
+%% @doc Check a property list against a set of rules for each property. Assumes
+%% there's a ruleset for every value in the proplist and that no extra
+%% values are present in the proplist.
+%% @end
+-spec check_proplist(list({binary(), term()}), list({binary(), rules()})) ->
+    {ok, list({binary(), term()})} | {error, list({binary(), list(binary())})}.
+check_proplist(Values, Rules) ->
+    Values0 = lists:keysort(1, Values),
+    Rules0 = lists:keysort(1, Rules),
+    ?debugMsg("check_proplist/4"),
+    case check_proplist(Values0, Rules0, [], []) of
+        {Values1, []} ->
+            {ok, Values1};
+        {_, Errors} ->
+            {error, Errors}
+    end.
+
 %% @doc Check a value against a set of rules. Errors are accumulated.
-%% Rules are iterated over in order. A rule may change the resulting
-%% value which is why {ok, term()} is the result.
-%%
-%% Custom function rules may return any of the rule_result() types. In
-%% the case where the rule returns {ok, term()} the new value
-%% is passed to subsequent rules. This is useful for type conversions
-%% or transforms. For example you may wish to create your own type
-%% conversion that can convert the string <<"2010-23-12">> to the 
-%% date tuple {12, 23, 2010}, then subsequently validate that the
-%% date results in someones age being greater than 18. Easy enough
-%% with two custom function rules! 
-%%
-%% You can also use sheriff to do checks on using the built in erlang types.
+%% Rules are iterated over in order.
 %% @end
 -spec check(term(), rules()) -> {ok, term()} | {error, list(binary())}.
 check(Value, Rules) ->
-    check(Value, Rules, []).
+    case check(Value, Rules, []) of
+        {Value0, []} ->
+            {ok, Value0};
+        {_, Errors} ->
+            {error, Errors}
+    end.
 
 %% @doc Try to convert a value to a desired type.
 -spec convert(binary(), convert()) -> convert_result() | error.
@@ -107,13 +117,9 @@ convert(Value, number) when is_binary(Value) ->
 convert(_, _) ->
     error.
 
-
-%% @private
 %% @doc Check rules accumulating errors.
-check(Value, [], []) ->
-    {ok, Value};
-check(_, [], Errors) ->
-    {error, lists:reverse(Errors)};
+check(Value, [], Errors) ->
+    {Value, lists:reverse(Errors)};
 check(Value, [{Rule, Message} | Rules], Errors) ->
     case check_rule(Value, Rule) of
         ok ->
@@ -124,6 +130,20 @@ check(Value, [{Rule, Message} | Rules], Errors) ->
             check(Value, Rules, [Message | Errors]);
         stop ->
             {error, [Message | Errors]}
+    end.
+
+%% @doc Check proplist rules accumulating errors.
+check_proplist([], [], Results, Errors) ->
+    {Results, Errors};
+check_proplist([{Key, Value} | Values], [{Key, Rules0} | Rules], Results, Errors) ->
+    {Value0, Errors0} = check(Value, Rules0, []),
+    case Errors0 of
+        [] ->
+            check_proplist(Values, Rules, [{Key, Value0} | Results],
+                Errors);
+        _ ->
+            check_proplist(Values, Rules, [{Key, Value0} | Results],
+                [{Key, Errors0} | Errors])
     end.
 
 %% @private
@@ -313,7 +333,7 @@ rule_size_test_() ->
     [?_assertEqual(ok, check_rule(<<"a">>, {size, 1})),
      ?_assertEqual(error, check_rule(<<"b">>, {size, 2}))].
 
-check_test_value_test_() ->
+check_test_() ->
     FloatMsg = <<"Must be a floating point number.">>,
     LtMsg = <<"Must be less than 4.0">>,
     InMsg = <<"Must be 2.0">>,
@@ -323,5 +343,28 @@ check_test_value_test_() ->
     [?_assertEqual({ok, 2.0}, check(<<"2.0">>, Rules)),
      ?_assertEqual({error, [FloatMsg]}, check(<<"a">>, Rules)),
      ?_assertEqual({error, [LtMsg, InMsg]}, check(<<"4.1">>, Rules))].
+
+check_proplist_test_() ->
+    FloatMsg = <<"Must be a floating point number">>,
+    LtMsg = <<"Must be less than 200.0">>,
+    GtMsg = <<"Must be greater than -100.0">>,
+    MinSizeMsg = <<"Must be at least 5 characters">>,
+    Rules = [
+        {<<"temperature">>, [{{convert, float}, FloatMsg},
+                {{'<', 200.0}, LtMsg}, {{'>', -100.0}, GtMsg}]},
+        {<<"name">>, [{{min_size, 5}, MinSizeMsg}]}
+    ],
+    Values = [{<<"name">>, <<"Johnny">>}, {<<"temperature">>, <<"98.7">>}],
+    BadValues = [{<<"name">>, <<"Tom">>}, {<<"temperature">>, <<"1000.0">>}],
+    GoodResults = lists:keysort(1, [{<<"temperature">>, 98.7}, {<<"name">>, <<"Johnny">>}]),
+    BadResults = lists:keysort(1, [{<<"temperature">>, [LtMsg]}, {<<"name">>, [MinSizeMsg]}]),
+    {ok, GoodResults0} = check_proplist(Values, Rules),
+    {error, BadResults0} = check_proplist(BadValues, Rules),
+    GoodResults1 = lists:keysort(1, GoodResults0),
+    BadResults1 = lists:keysort(1, BadResults0),
+    ?debugMsg("testing"),
+    [?_assertEqual(GoodResults, GoodResults1),
+     ?_assertEqual(BadResults, BadResults1)].
+
 
 -endif.
