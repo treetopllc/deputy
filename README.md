@@ -20,7 +20,6 @@ Single Simple Value Usage
 -------------------------
 
 ```erlang
--type sane_number() :: float() < 
 Rules = [{{convert, float}, <<"Must be a floating point number">>}, 
          {{'<', 10.0}, <<"Must be less than 10.0">>}],
 {ok, 5.5} = deputy:check(<<"5.5">>, Rules),
