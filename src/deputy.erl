@@ -386,7 +386,7 @@ min_size_msg() ->
 in_msg() ->
     <<"Must be in list">>.
 
-check_2_test_() ->
+check_value_test_() ->
     Rules = [{{convert, float}, float_msg()},
         {{'<', 4.0}, lt_msg()},
         {{in, [2.0]}, in_msg()}],
