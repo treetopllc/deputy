@@ -28,15 +28,36 @@ Proplist Usage
 ```erlang
 Rules = [{<<"name">> , [{{regexp, <<"[a-zA-Z0-9]+">>}, <<"Must contain only alphanumerical characters">>}]}],
 Attributes = [{<<"name">>, <<"##BatMan##">>}],
-{error, [{<<"name">>, [<<"Must...">>]}]} = deputy:check_proplist(Attributes, RuleSet, []),
+{error, [{<<"name">>, [<<"Must...">>]}]} = deputy:check_proplist(Attributes, Rules, []),
 ```
 
-Addon Type Conversion
----------------------
+Addon Type Conversion and Validation
+------------------------------------
 
 ```erlang
-binary_to_datetime(Datetime) ->
-   ...
-   {{Year, Month, Day}, {Hour, Min, Sec}}.
+DateConvert = fun(Date) ->
+    DateStr = binary_to_list(Date),
+    case io_lib:fread("~4d-~2d-~2d", Date) of
+        {ok, [Year, Month, Day]} ->
+            {ok, {Year, Month, Day}};
+        _ ->
+            stop
+    end.
 
-Rules = [{<<"datetime">>, 
+CurrentDate = 
+MinAge = 18,
+%% bad age checker
+CheckAge = fun(Date) ->
+  Days = calendar:date_to_gregorian(Date),
+  {Today, _} = calendar:local_time(),
+  TodayDays = calendar:date_to_gregorian(Today),
+  Age = (TodayDays - Days)/365.0,
+  case Age > MinAge ->
+      true -> ok
+      false -> error
+  end,
+
+Rules = [{<<"birthday">>,
+  [{{func, DateConvert}, <<"Must be a valid datetime string.">>},
+   {{func, CheckAge}, <<"Must be at least 18 years old.">>}]}].
+```
