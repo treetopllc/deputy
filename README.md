@@ -1,23 +1,16 @@
 Deputy
 ======
 
-Deputy is meant to compliment github.com/extend/sheriff in that
-it provides a way to convert and validate many common strings,
-numerical values, and property lists containing simple attribute
-name => value mappings which don't necessarily map to erlang types easily
-or well.
+Deputy is a declarative data conversion and validation library for Erlang.
 
-It also is meant to be useful in providing error reporting back to the
-requestor which sheriff does not do and may never do.
+It is meant to be useful for handling user input and reporting reasonably
+useful messages back to a user.
 
-In essence its meant to be user input processing from things like json
-and query string encoded data. You may need to transform, check rules,
-and report back errors. These things are not easy to do directly with a
-functional language unless you do it declaratively!
+For awesome -type based checking (which can certainly be used with this)
+checkout github.com/extend/sheriff.
 
-
-Single Simple Value Usage
--------------------------
+Simple Value Usage
+------------------
 
 ```erlang
 Rules = [{{convert, float}, <<"Must be a floating point number">>}, 
@@ -29,11 +22,21 @@ Rules = [{{convert, float}, <<"Must be a floating point number">>},
     deputy:check(<<"abcd">>, Rules),
 ```
 
-Proplist Rule Usage
--------------------
+Proplist Usage
+--------------
 
 ```erlang
-RuleSet = [{<<"name">> , [{{regexp, <<"[a-zA-Z0-9]+">>}, <<"Must contain only alphanumerical characters">>}]}],
+Rules = [{<<"name">> , [{{regexp, <<"[a-zA-Z0-9]+">>}, <<"Must contain only alphanumerical characters">>}]}],
 Attributes = [{<<"name">>, <<"##BatMan##">>}],
-{error, [{<<"name">>, [...]}]} = deputy:check(Attributes, RuleSet),
+{error, [{<<"name">>, [<<"Must...">>]}]} = deputy:check_proplist(Attributes, RuleSet, []),
 ```
+
+Addon Type Conversion
+---------------------
+
+```erlang
+binary_to_datetime(Datetime) ->
+   ...
+   {{Year, Month, Day}, {Hour, Min, Sec}}.
+
+Rules = [{<<"datetime">>, 
