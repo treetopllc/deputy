@@ -16,9 +16,9 @@ Simple Value Usage
 Rules = [{{convert, float}, <<"Must be a floating point number">>}, 
          {{'<', 10.0}, <<"Must be less than 10.0">>}],
 {ok, 5.5} = deputy:check(<<"5.5">>, Rules),
-{error, [{{'<', 10.0}, <<"Must be less than 10.0">>}]} =
+{error, [<<"Must be less than 10.0">>]} =
     deputy:check(<<"40.0">>, Rules),
-{error, [{{convert, float}, <<"Must be a floating point number">>}]} =
+{error, [<<"Must be a floating point number">>]} =
     deputy:check(<<"abcd">>, Rules),
 ```
 
