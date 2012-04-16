@@ -191,6 +191,13 @@ check_proplist([{Key, Value} | Values], [{Key, Rules0} | Rules], Results, Errors
 
 %% @private
 %% @doc Check built in rules.
+check_rule(Value, {aint, Rule}) ->
+    case check_rule(Value, Rule) of
+        error ->
+            ok;
+        ok ->
+            error
+    end;
 check_rule(Value, {convert, Type}) when is_atom(Type) ->
     case convert(Value, Type) of
         error ->
@@ -328,6 +335,11 @@ rule_convert_test_() ->
 rule_regexp_test_() ->
     [?_assertEqual(ok, check_rule(<<"a">>, {regexp, <<"^a">>})),
      ?_assertEqual(error, check_rule(<<"b">>, {regexp, <<"^a">>}))].
+
+rule_aint_test_() ->
+    [?_assertEqual(error, check_rule(<<"a">>, {aint, {in, [<<"a">>, <<"b">>]}}) ),
+     ?_assertEqual(ok,    check_rule(<<"b">>, {aint, {in, [<<"a">>, <<"c">>]}}) )
+    ].
 
 rule_in_test_() ->
     [?_assertEqual(ok, check_rule(<<"a">>, {in, [<<"a">>, <<"b">>]})),
