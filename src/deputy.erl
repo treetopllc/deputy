@@ -146,7 +146,7 @@ check(Value, [{Rule, Message} | Rules], Errors) ->
         error ->
             check(Value, Rules, [Message | Errors]);
         stop ->
-            {error, [Message | Errors]}
+            {error, lists:reverse([Message | Errors])}
     end.
 
 %% @doc Check a property list against a set of rules for each property.
