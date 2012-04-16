@@ -80,7 +80,7 @@ check_proplist(Values, Rules, Defaults) ->
     Values0 = lists:keysort(1, Values),
     Rules0 = lists:keysort(1, Rules),
     Defaults0 = lists:keysort(1, Defaults),
-    Values1 = lists:keymerge(1, Values0, Defaults0),
+    Values1 = lists:ukeymerge(1, Values0, Defaults0),
     case check_proplist(Values1, Rules0, [], []) of
         {Values2, []} ->
             {ok, Values2};
@@ -341,8 +341,9 @@ rule_regexp_test_() ->
      ?_assertEqual(error, check_rule(<<"b">>, {regexp, <<"^a">>}))].
 
 rule_aint_test_() ->
-    [?_assertEqual(error, check_rule(<<"a">>, {aint, {in, [<<"a">>, <<"b">>]}}) ),
-     ?_assertEqual(ok,    check_rule(<<"b">>, {aint, {in, [<<"a">>, <<"c">>]}}) )
+    [?_assertEqual(error, check_rule(<<"a">>, {aint, {in, [<<"a">>, <<"b">>]}})),
+     ?_assertEqual(ok, check_rule(<<"b">>, {aint, {in, [<<"a">>, <<"c">>]}}))
+    ].
 
 rule_is_test_() ->
     [?_assertEqual(error, check_rule(undefined, {is, verydefined}) ),
@@ -441,7 +442,7 @@ check_proplist_error_test() ->
 
 check_proplist_defaults_test() ->
     Rules = simple_proplist_rules(),
-    Defaults = [{<<"temperature">>, 99.9}],
+    Defaults = [{<<"name">>, <<"Batman">>}, {<<"temperature">>, 99.9}],
     Values = [{<<"name">>, <<"Johnny">>}],
     Expected = lists:keysort(1, [{<<"temperature">>, 99.9}, {<<"name">>, <<"Johnny">>}]),
     {ok, Results} = check_proplist(Values, Rules, Defaults),
