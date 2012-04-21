@@ -20,7 +20,7 @@ build_plt:
 	@$(DIALYZER) --build_plt --output_plt .$(PROJECT).plt \
 		--apps kernel stdlib sasl
 
-dialyze:
+dialyzer:
 	@$(DIALYZER) --src src --plt .$(PROJECT).plt --no_native \
 		-Werror_handling -Wrace_conditions -Wunmatched_returns
 docs:
