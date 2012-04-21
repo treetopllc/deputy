@@ -1,13 +1,27 @@
 .PHONY: all compile test clean
 
+PROJECT = deputy
+DIALYZER = dialyzer
+REBAR = rebar
+
 all: compile
 
 compile:
-	@./rebar compile
+	@$(REBAR) compile
 
 clean:
-	@./rebar clean
+	@$(REBAR) clean
 
 test:
 	rm -f .eunit/*.dat
-	@./rebar skip_deps=true eunit
+	@$(REBAR) skip_deps=true eunit
+
+build_plt:
+	@$(DIALYZER) --build_plt --output_plt .$(PROJECT).plt \
+		--apps kernel stdlib sasl
+
+dialyze:
+	@$(DIALYZER) --src src --plt .$(PROJECT).plt --no_native \
+		-Werror_handling -Wrace_conditions -Wunmatched_returns
+docs:
+	@$(REBAR) doc skip_deps=true
