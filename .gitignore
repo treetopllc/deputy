@@ -17,3 +17,4 @@ logs
 log
 *-swp
 doc
+*.plt
