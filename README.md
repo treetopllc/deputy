@@ -26,7 +26,7 @@ Proplist Usage
 --------------
 
 ```erlang
-Rules = [{<<"name">> , [{{regexp, <<"[a-zA-Z0-9]+">>}, <<"Must contain only alphanumerical characters">>}]}],
+Rules = [{<<"name">> , [{required, <<"Must have a name">>}, {{regexp, <<"[a-zA-Z0-9]+">>}, <<"Must contain only alphanumerical characters">>}]}],
 Attributes = [{<<"name">>, <<"##BatMan##">>}],
 {error, [{<<"name">>, [<<"Must...">>]}]} = deputy:check_proplist(Attributes, Rules, []),
 ```
