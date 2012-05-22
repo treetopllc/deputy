@@ -29,7 +29,7 @@
 -type convert() :: boolean | integer | float | number.
 -type convert_result() :: boolean() | number().
 -type rule_fun() :: fun((term()) -> ok | {ok, term()} | error | stop).
--type rule() :: {convert, convert()} | {regexp, binary()}
+-type rule() :: required | {convert, convert()} | {regexp, binary()}
     | {in, list()}
     | {'<', number()} | {'>', number()} | {'<=', number()} | {'>=', number()}
     | {min_size, pos_integer()} | {max_size, pos_integer()}
@@ -150,8 +150,8 @@ check(Value, [{Rule, Message} | Rules], Errors) ->
     end.
 
 %% @doc Check a property list against a set of rules for each property.
-%% Assumes the Values and Rules are sorted.
-%% Extraneous or Missing attributes are considered errors.
+%% Assumes the Values and Rules are sorted. The required rule is special
+%% and must be the first rule in the list of rules!
 %% @end
 -spec check_proplist(list({binary(), term()}), list({binary(), rules()})) ->
     {ok, list({binary(), term()})} | {error, list({binary(), list(binary())})}.
@@ -166,18 +166,29 @@ check_proplist(Values, Rules) ->
 %% @doc Check proplist rules accumulating errors.
 check_proplist([], [], Results, Errors) ->
     {Results, Errors};
-check_proplist([], Extras, Results, Errors) ->
-    Errors0 = [{K, [<<"Missing">>]} || {K, _} <- Extras],
-    {Results, Errors0 ++ Errors};
+check_proplist([], [{Key, Rules0} | Rules] , Results, Errors) ->
+    [Rule | _] = Rules0,
+    case Rule of
+        {required, Message} ->
+            check_proplist([], Rules, Results, [{Key, [Message]} | Errors]);
+        _ ->
+            check_proplist([], Rules, Results, Errors)
+    end;
 check_proplist(Extras, [], Results, Errors) ->
-    Errors0 = [{K, [<<"Extraneous">>]} || {K, _} <- Extras],
-    {Results, Errors0 ++ Errors};
-check_proplist([{Key0, _} | Values], Rules0=[{Key1, _} | _], Results, Errors)
+    Extras0 = lists:reverse(Extras),
+    {Extras0 ++ Results, Errors};
+check_proplist([{Key0, Value} | Values], Rules0=[{Key1, _} | _], Results, Errors)
         when Key0 < Key1 ->
-    check_proplist(Values, Rules0, Results, [{Key0, [<<"Extraneous">>]} | Errors]);
-check_proplist(Values0=[{Key0, _} | _Values], [{Key1, _} | Rules], Results, Errors)
+    check_proplist(Values, Rules0, [{Key0, Value} | Results], Errors);
+check_proplist(Values0=[{Key0, _} | _Values], [{Key1, Rules0} | Rules], Results, Errors)
         when Key0 > Key1 ->
-    check_proplist(Values0, Rules, Results, [{Key1, [<<"Missing">>]} | Errors]);
+    [Rule | _] = Rules0,
+    case Rule of
+        {required, Message} ->
+            check_proplist(Values0, Rules, Results, [{Key1, [Message]} | Errors]);
+        _ ->
+            check_proplist(Values0, Rules, Results, Errors)
+    end;
 check_proplist([{Key, Value} | Values], [{Key, Rules0} | Rules], Results, Errors) ->
     {Value0, Errors0} = check(Value, Rules0, []),
     case Errors0 of
@@ -191,6 +202,8 @@ check_proplist([{Key, Value} | Values], [{Key, Rules0} | Rules], Results, Errors
 
 %% @private
 %% @doc Check built in rules.
+check_rule(Value, required) ->
+    ok;
 check_rule(Value, {'not', Rule}) ->
     case check_rule(Value, Rule) of
         error ->
@@ -407,6 +420,9 @@ min_size_msg() ->
 in_msg() ->
     <<"Must be in list">>.
 
+required_msg() ->
+    <<"Must exist">>.
+
 check_value_test_() ->
     Rules = [{{convert, float}, float_msg()},
         {{'<', 4.0}, lt_msg()},
@@ -417,7 +433,7 @@ check_value_test_() ->
 
 simple_proplist_rules() ->
     [
-        {<<"temperature">>, [{{convert, float}, float_msg()},
+        {<<"temperature">>, [{required, required_msg()}, {{convert, float}, float_msg()},
                 {{'<', 200.0}, lt_msg()}, {{'>', -100.0}, gt_msg()}]},
         {<<"name">>, [{{min_size, 5}, min_size_msg()}]}
     ].
@@ -429,7 +445,7 @@ check_proplist_test() ->
     Expected = lists:keysort(1, [{<<"temperature">>, 98.7}, {<<"name">>, <<"Johnny">>}]),
     {ok, Results} = check_proplist(Values, Rules, Defaults),
     Results0 = lists:keysort(1, Results),
-    ?assertEqual(Results0, Expected).
+    ?assertEqual(Expected, Results0).
 
 check_proplist_error_test() ->
     Rules = simple_proplist_rules(),
@@ -438,7 +454,7 @@ check_proplist_error_test() ->
     Expected = lists:keysort(1, [{<<"temperature">>, [lt_msg()]}, {<<"name">>, [min_size_msg()]}]),
     {error, Results} = check_proplist(Values, Rules, Defaults),
     Results0 = lists:keysort(1, Results),
-    ?assertEqual(Results0, Expected).
+    ?assertEqual(Expected, Results0).
 
 check_proplist_defaults_test() ->
     Rules = simple_proplist_rules(),
@@ -447,26 +463,16 @@ check_proplist_defaults_test() ->
     Expected = lists:keysort(1, [{<<"temperature">>, 99.9}, {<<"name">>, <<"Johnny">>}]),
     {ok, Results} = check_proplist(Values, Rules, Defaults),
     Results0 = lists:keysort(1, Results),
-    ?assertEqual(Results0, Expected).
+    ?assertEqual(Expected, Results0).
 
-check_proplist_missing_test() ->
+check_proplist_required_test() ->
     Rules = simple_proplist_rules(),
     Defaults = [],
     Values = [{<<"name">>, <<"Johnny">>}],
-    Expected = lists:keysort(1, [{<<"temperature">>, [<<"Missing">>]}]),
+    Expected = lists:keysort(1, [{<<"temperature">>, [required_msg()]}]),
     {error, Results} = check_proplist(Values, Rules, Defaults),
     Results0 = lists:keysort(1, Results),
-    ?assertEqual(Results0, Expected).
-
-check_proplist_extraneous_test() ->
-    Rules = simple_proplist_rules(),
-    Defaults = [],
-    Values = [{<<"name">>, <<"Johnny">>}, {<<"temperature">>, 99.9}, {<<"badidea">>, <<"NOOOOO">>}],
-    Expected = lists:keysort(1, [{<<"badidea">>, [<<"Extraneous">>]}]),
-    {error, Results} = check_proplist(Values, Rules, Defaults),
-    Results0 = lists:keysort(1, Results),
-    ?assertEqual(Results0, Expected).
-
+    ?assertEqual(Expected, Results0).
 
 whitelist_test() ->
     Keys = [<<"A">>],
