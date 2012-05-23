@@ -22,8 +22,8 @@
 %% simple api
 -export([whitelist/2, check/2, check_proplist/3]).
 
-%% advanced api which check/2 is built on.
--export([convert/2, check_rule/2, check/3, check_proplist/2, check_proplist/4]).
+%% advanced api which check/2 and check_proplist/3 are built on.
+-export([convert/2, check_rule/2, check/3, check_proplist/4]).
 
 %% types
 -type convert() :: boolean | integer | float | number.
@@ -147,20 +147,6 @@ check(Value, [{Rule, Message} | Rules], Errors) ->
             check(Value, Rules, [Message | Errors]);
         stop ->
             {error, lists:reverse([Message | Errors])}
-    end.
-
-%% @doc Check a property list against a set of rules for each property.
-%% Assumes the Values and Rules are sorted. The required rule is special
-%% and must be the first rule in the list of rules!
-%% @end
--spec check_proplist(list({binary(), term()}), list({binary(), rules()})) ->
-    {ok, list({binary(), term()})} | {error, list({binary(), list(binary())})}.
-check_proplist(Values, Rules) ->
-    case check_proplist(Values, Rules, [], []) of
-        {Values0, []} ->
-            {ok, Values0};
-        {_, Errors} ->
-            {error, Errors}
     end.
 
 %% @doc Check proplist rules accumulating errors.
