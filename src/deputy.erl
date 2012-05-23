@@ -20,7 +20,7 @@
 -module(deputy).
 
 %% simple api
--export([whitelist/2, check/2, check_proplist/3]).
+-export([keys/1, whitelist/2, check/2, check_proplist/3]).
 
 %% advanced api which check/2 and check_proplist/3 are built on.
 -export([convert/2, check_rule/2, check/3, check_proplist/4]).
@@ -52,6 +52,11 @@
 %% ----------------------------------------------------------------------------
 %% simple api
 %% ----------------------------------------------------------------------------
+
+%% @doc Keys of a rule set for the purpose of whitelisting.
+-spec keys(keyrules()) -> list(binary()).
+keys(Rules) ->
+    [K || {K, _V} <- Rules].
 
 %% @doc Whitelisting removes keys from the value list not in the whitelist.
 -spec whitelist(keyvalues(), list(binary())) -> keyvalues().
@@ -423,6 +428,10 @@ simple_proplist_rules() ->
                 {{'<', 200.0}, lt_msg()}, {{'>', -100.0}, gt_msg()}]},
         {<<"name">>, [{{min_size, 5}, min_size_msg()}]}
     ].
+
+keys_test() ->
+    Rules = simple_proplist_rules(),
+    ?assertEqual([<<"temperature">>, <<"name">>], keys(Rules)).
 
 check_proplist_test() ->
     Rules = simple_proplist_rules(),
