@@ -158,8 +158,12 @@ check(Value, [{Rule, Message} | Rules], Errors) ->
 check_proplist([], [], Results, Errors) ->
     {Results, Errors};
 check_proplist([], [{Key, Rules0} | Rules] , Results, Errors) ->
-    [Rule | _] = Rules0,
-    case Rule of
+    Rule0 = case Rules0 of
+        [] -> undefined;
+        [Rule | _] ->
+            Rule
+    end,
+    case Rule0 of
         {required, Message} ->
             check_proplist([], Rules, Results, [{Key, [Message]} | Errors]);
         _ ->
@@ -173,8 +177,12 @@ check_proplist([{Key0, Value} | Values], Rules0=[{Key1, _} | _], Results, Errors
     check_proplist(Values, Rules0, [{Key0, Value} | Results], Errors);
 check_proplist(Values0=[{Key0, _} | _Values], [{Key1, Rules0} | Rules], Results, Errors)
         when Key0 > Key1 ->
-    [Rule | _] = Rules0,
-    case Rule of
+    Rule0 = case Rules0 of
+        [] -> undefined;
+        [Rule | _] ->
+            Rule
+    end,
+    case Rule0 of
         {required, Message} ->
             check_proplist(Values0, Rules, Results, [{Key1, [Message]} | Errors]);
         _ ->
@@ -441,6 +449,13 @@ check_proplist_test() ->
     {ok, Results} = check_proplist(Values, Rules, Defaults),
     Results0 = lists:keysort(1, Results),
     ?assertEqual(Expected, Results0).
+
+check_proplist_empty_rules_test() ->
+    Rules = [{<<"name">>, []}],
+    Values = [],
+    Expected = [],
+    {ok, Results} = check_proplist(Values, Rules, []),
+    ?assertEqual(Expected, Results).
 
 check_proplist_error_test() ->
     Rules = simple_proplist_rules(),
