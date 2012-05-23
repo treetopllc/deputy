@@ -202,7 +202,7 @@ check_proplist([{Key, Value} | Values], [{Key, Rules0} | Rules], Results, Errors
 
 %% @private
 %% @doc Check built in rules.
-check_rule(Value, required) ->
+check_rule(_Value, required) ->
     ok;
 check_rule(Value, {'not', Rule}) ->
     case check_rule(Value, Rule) of
