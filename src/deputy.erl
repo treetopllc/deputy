@@ -136,15 +136,10 @@ convert(Value, number) when is_binary(Value) ->
         error:badarg ->
             error
     end;
-convert(Value, string) when is_binary(Value) ->
-    try
-        binary_to_list(Value)
-    catch
-        error:badarg ->
-            error
-    end;
+convert(Value, list) when is_binary(Value) ->
+    binary_to_list(Value);
 convert(Value, atom) when is_binary(Value) ->
-    convert(binary_to_list(Value), atom);
+    list_to_atom(binary_to_list(Value));
 convert(Value, existing_atom) when is_binary(Value) ->
     convert(binary_to_list(Value), existing_atom);
 convert(Value, atom) when is_list(Value) ->
@@ -363,6 +358,23 @@ convert_number_test_() ->
      ?_assertEqual(1.2, convert(<<"1.2">>, number)),
      ?_assertEqual(1, convert(<<"1">>, number)),
      ?_assertEqual(error, convert(<<"a">>, number))].
+
+% According to erlang documentation binary_to_list never throws if the argument is a binary
+convert_list_test_() ->
+    [?_assertEqual([0], convert(<<0>>, list)),
+     ?_assertEqual("test", convert(<<"test">>, list))].
+
+convert_atom_test_() ->
+    [?_assertEqual(ok, convert(<<"ok">>, atom)),
+     ?_assertEqual(ok, convert("ok", atom)),
+     ?_assertEqual("Non_Existing_Atom_1", atom_to_list(convert(<<"Non_Existing_Atom_1">>, atom))),
+     ?_assertEqual("Non_Existing_Atom_2", atom_to_list(convert("Non_Existing_Atom_2", atom)))].
+
+convert_ex_atom_test_() ->
+    [?_assertEqual(ok, convert(<<"ok">>, existing_atom)),
+     ?_assertEqual(ok, convert("ok", existing_atom)),
+     ?_assertEqual(error, convert(<<"Non_Existing_Atom_3">>, existing_atom)),
+     ?_assertEqual(error, convert("Non_Existing_Atom_4", existing_atom))].
 
 rule_convert_test_() ->
     [?_assertEqual({ok, 1}, check_rule(<<"1">>, {convert, number})),
