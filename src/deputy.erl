@@ -136,6 +136,26 @@ convert(Value, number) when is_binary(Value) ->
         error:badarg ->
             error
     end;
+convert(Value, string) when is_binary(Value) ->
+    try
+        binary_to_list(Value)
+    catch
+        error:badarg ->
+            error
+    end;
+convert(Value, atom) when is_binary(Value) ->
+    convert(binary_to_list(Value), atom);
+convert(Value, existing_atom) when is_binary(Value) ->
+    convert(binary_to_list(Value), existing_atom);
+convert(Value, atom) when is_list(Value) ->
+    list_to_atom(Value);
+convert(Value, existing_atom) when is_list(Value) ->
+    try
+        list_to_existing_atom(Value)
+    catch
+        error:badarg ->
+            error
+    end;
 convert(_, _) ->
     error.
 
