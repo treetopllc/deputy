@@ -26,8 +26,8 @@
 -export([convert/2, check_rule/2, check/3, check_proplist/4]).
 
 %% types
--type convert() :: boolean | integer | float | number.
--type convert_result() :: boolean() | number().
+-type convert() :: boolean | integer | float | number | atom | existing_atom | list.
+-type convert_result() :: boolean() | number() | list() | binary() | atom().
 -type rule_fun() :: fun((term()) -> ok | {ok, term()} | error | stop).
 -type rule() :: required | {convert, convert()} | {regexp, binary()}
     | {in, list()}
