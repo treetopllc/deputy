@@ -15,4 +15,4 @@
 {application, deputy,
 	[{description, "Declarative data transformation and validation."},
 	 {applications, [kernel, stdlib]},
-	 {vsn, "0.1.0"}]}.
+	 {vsn, "1.0.0"}]}.
